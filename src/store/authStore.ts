@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { AxiosError } from "axios";
 import { AuthApi } from "@/constants/Api.ts";
 
@@ -9,6 +9,7 @@ interface AuthState {
   checking: boolean;
   login: (email: string, password: string) => Promise<any>;
   checkAuth: () => Promise<void>;
+  logout: () => void;
   setUser: (user: any | null) => void;
 }
 
@@ -16,7 +17,7 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   loading: true,
-  checking: true,
+  checking: false,
 
   setUser: (user) => set({ user }),
 
@@ -63,6 +64,16 @@ export const useAuthStore = create<AuthState>((set) => ({
     } finally {
       set({ checking: false });
     }
+  },
+
+  logout: async () => {
+    try {
+      localStorage.removeItem("jwtToken");
+      set({ user: null });
+      toast.success("Logged out successfully");
+    } catch (error) {
+      toast.error("Unable to reach server. Please try again later.");
+    } 
   },
 
 }));

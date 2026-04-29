@@ -1,7 +1,6 @@
-import axios from 'axios';
 import { useState } from 'react';
-import toast from 'react-hot-toast';
-import { Link } from "react-router-dom"
+import { toast } from "sonner";
+import { Link, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -16,6 +15,8 @@ export default function LoginPage() {
 
 	const {login} = useAuthStore();
 
+	const navigate = useNavigate();
+
 
 	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
@@ -23,11 +24,12 @@ export default function LoginPage() {
 		try {
 
 			if (!username || !password) {
-				toast.error("Please enter email and password");
+				toast.error("Please enter username and password");
 				return;
 			}
-
 			await login(username, password);
+			console.log(useAuthStore.getState().user);
+			navigate("/customer/dashboard")
 
 		} catch (error: any) {
 			if (error?.response?.data?.message) {

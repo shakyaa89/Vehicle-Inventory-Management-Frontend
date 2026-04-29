@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils"
 import { Menu } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 import { Link, useLocation } from "react-router-dom"
-import { useAuthStore } from "@/store/authStore"
 
 const links = [
   { href: "/", label: "Home" },
@@ -15,7 +14,6 @@ const links = [
 
 export function Navbar() {
   const { pathname } = useLocation()
-  const { user } = useAuthStore();
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur supports-backdrop-filter:bg-background/60">
@@ -40,22 +38,14 @@ export function Navbar() {
         </div>
 
         <div className="hidden items-center gap-2 md:flex">
-          {user == null ? <>
+          
             <Button asChild variant="ghost" size="sm">
               <Link to="/login">Sign in</Link>
             </Button>
             <Button asChild size="lg">
               <Link to="/register">Get started</Link>
             </Button>
-          </> :
-            <>
-              <p className=
-                "text-sm font-medium text-foreground transition-colors hover:text-foreground">
-                Welcome, {user.fullName}
-              </p>
-              <Button size="sm" className="cursor-pointer">
-                Logout
-              </Button></>}
+          
         </div>
 
         <Sheet>

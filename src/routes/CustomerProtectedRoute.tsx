@@ -2,21 +2,20 @@ import { Navigate } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
 import type { JSX } from "react";
 
-export default function PublicRoute({
+export default function CustomerProtectedRoute({
   children,
 }: {
   children: JSX.Element;
 }) {
-  const user = useAuthStore((state) => state.user);
-  const checking = useAuthStore((state) => state.checking);
+  const { user, checking } = useAuthStore();
 
   if (checking) return null;
 
-  if (user?.role === "Customer") {
-    return <Navigate to="/customer/dashboard" replace />;
+  if (!user) {
+    return <Navigate to="/login" replace />;
   }
 
-  if (user) {
+  if (user.role !== "Customer") {
     return <Navigate to="/" replace />;
   }
 

@@ -1,1 +1,10 @@
 @import "tailwindcss";
+
+body {
+  font-family: "Geist", sans-serif;
+  overflow-y: scroll;
+}
+
+button{
+  cursor: pointer;
+}

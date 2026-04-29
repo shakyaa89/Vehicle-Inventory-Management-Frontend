@@ -10,12 +10,13 @@ export default function RegisterPage() {
         <div className="grid min-h-screen lg:grid-cols-2">
             <div className="relative hidden lg:block">
                 <img
-                    src="/parts-shelf.jpg"
+                    src=""
                     alt="Organized auto parts on warehouse shelves"
                     className="h-full w-full object-cover"
                 />
 
-                <div className="absolute inset-0 bg-linear-to-tr from-primary/80 via-primary/40 to-transparent" />
+                {/* <div className="absolute inset-0 bg-linear-to-tr from-primary/80 via-primary/40 to-transparent" /> */}
+                <div className="absolute inset-0 bg-purple-900" />
             </div>
             <div className="flex flex-col p-6 md:p-10">
                 <Logo />
