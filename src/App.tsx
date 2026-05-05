@@ -14,6 +14,15 @@ import AppointmentsPage from './pages/Customer/Appointments'
 import NotificationsPage from './pages/Customer/Notifications'
 import ReviewsPage from './pages/Customer/Reviews'
 import { Toaster } from 'sonner'
+import AdminDashboard from './pages/Admin/Dashboard'
+import AdminProtectedRoute from './routes/AdminProtectedRoute'
+import PartsPage from './pages/Admin/Parts'
+import VendorsPage from './pages/Admin/Vendors'
+import StaffDashboard from './pages/Staff/StaffDashboard'
+import StaffProtectedRoute from './routes/StaffProtectedRoute'
+import StaffCustomerRegistration from './pages/Staff/StaffCustomerRegistration'
+import StaffRegistrationPage from './pages/Admin/StaffRegistration'
+import StaffCustomersPage from './pages/Staff/StaffCustomers'
 
 function App() {
 
@@ -105,6 +114,56 @@ function App() {
             <CustomerProtectedRoute>
               <ReviewsPage />
             </CustomerProtectedRoute>
+          } />
+
+        <Route
+          path="/admin/dashboard"
+          element={
+            <AdminProtectedRoute>
+              <AdminDashboard />
+            </AdminProtectedRoute>
+          } />
+        <Route
+          path="/admin/parts"
+          element={
+            <AdminProtectedRoute>
+              <PartsPage />
+            </AdminProtectedRoute>
+          } />
+          <Route
+            path="/admin/vendors"
+            element={
+              <AdminProtectedRoute>
+                <VendorsPage />
+              </AdminProtectedRoute>
+            } />
+        <Route
+          path="/admin/staff"
+          element={
+            <AdminProtectedRoute>
+              <StaffRegistrationPage />
+            </AdminProtectedRoute>
+          } />
+        <Route
+          path="/staff/dashboard"
+          element={
+            <StaffProtectedRoute>
+              <StaffDashboard />
+            </StaffProtectedRoute>
+          } />
+        <Route
+          path="/staff/customers/register"
+          element={
+            <StaffProtectedRoute>
+              <StaffCustomerRegistration />
+            </StaffProtectedRoute>
+          } />
+        <Route
+          path="/staff/customers"
+          element={
+            <StaffProtectedRoute>
+              <StaffCustomersPage />
+            </StaffProtectedRoute>
           } />
       </Routes>
     </>

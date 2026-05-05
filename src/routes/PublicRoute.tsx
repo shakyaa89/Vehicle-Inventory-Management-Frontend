@@ -15,6 +15,12 @@ export default function PublicRoute({
   if (user?.role === "Customer") {
     return <Navigate to="/customer/dashboard" replace />;
   }
+  if (user?.role === "Admin") {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+  if (user?.role === "Staff") {
+    return <Navigate to="/staff/dashboard" replace />;
+  }
 
   if (user) {
     return <Navigate to="/" replace />;

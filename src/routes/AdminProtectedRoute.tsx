@@ -2,21 +2,20 @@ import { Navigate } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
 import type { JSX } from "react";
 
-export default function CustomerProtectedRoute({
+export default function AdminProtectedRoute({
   children,
 }: {
   children: JSX.Element;
 }) {
-  const user = useAuthStore((state) => state.user)
-  const checking = useAuthStore((state) => state.checking)
+  const { user, checking } = useAuthStore();
 
-  if (checking) return null;
+  if (checking) return <div>Loading...</div>;
 
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
-  if (user.role !== "Customer") {
+  if (user.role !== "Admin") {
     return <Navigate to="/" replace />;
   }
 

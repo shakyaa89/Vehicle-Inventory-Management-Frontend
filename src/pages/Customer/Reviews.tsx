@@ -1,5 +1,5 @@
-import CustomerTopbar from "@/components/dashboard/CustomerNavbar";
-import CustomerSidebar from "@/components/dashboard/CustomerSidebar";
+import CustomerTopbar from "@/components/dashboard/Customer/CustomerNavbar";
+import CustomerSidebar from "@/components/dashboard/Customer/CustomerSidebar";
 
 export default function ReviewsPage() {
     return (

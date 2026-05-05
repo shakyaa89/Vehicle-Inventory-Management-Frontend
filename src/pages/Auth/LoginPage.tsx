@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
 import { Logo } from "@/components/logo/logo"
 import { useAuthStore } from '@/store/authStore';
+import { redirectToDashboard } from '@/utils/redirect';
 
 export default function LoginPage() {
 	const [username, setUsername] = useState('');
@@ -29,7 +30,7 @@ export default function LoginPage() {
 			}
 			await login(username, password);
 			console.log(useAuthStore.getState().user);
-			navigate("/customer/dashboard")
+			redirectToDashboard(navigate)
 
 		} catch (error: any) {
 			if (error?.response?.data?.message) {

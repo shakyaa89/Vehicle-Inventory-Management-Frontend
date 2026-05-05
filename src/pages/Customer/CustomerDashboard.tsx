@@ -7,8 +7,8 @@ import {
     Clock
 } from "lucide-react";
 
-import CustomerSidebar from "@/components/dashboard/CustomerSidebar";
-import CustomerTopbar from "@/components/dashboard/CustomerNavbar";
+import CustomerSidebar from "@/components/dashboard/Customer/CustomerSidebar";
+import CustomerTopbar from "@/components/dashboard/Customer/CustomerNavbar";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -83,7 +83,7 @@ export default function CustomerDashboard() {
                         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                             <StatCard label="Vehicles" value="2" icon={Car} />
                             <StatCard label="Upcoming" value="2" icon={Calendar} />
-                            <StatCard label="Spent (YTD)" value="$1,240" icon={Wallet} />
+                            <StatCard label="Spent (YTD)" value="Rs 1,20,000" icon={Wallet} />
                             <StatCard label="Lifetime visits" value="14" icon={Wrench} />
                         </div>
 

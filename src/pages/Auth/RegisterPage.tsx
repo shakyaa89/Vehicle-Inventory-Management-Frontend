@@ -1,11 +1,81 @@
-import { Link } from "react-router-dom"
+import { useState } from "react"
+import { Link, useNavigate } from "react-router-dom"
+import { AxiosError } from "axios"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Logo } from "@/components/logo/logo"
+import { AuthApi } from "@/constants/Api"
+import type { UserRegisterData } from "@/types/auth"
 
 export default function RegisterPage() {
+    const navigate = useNavigate()
+    const [userName, setUserName] = useState("")
+    const [fullName, setFullName] = useState("")
+    const [email, setEmail] = useState("")
+    const [phoneNumber, setPhoneNumber] = useState("")
+    const [password, setPassword] = useState("")
+    const [confirmPassword, setConfirmPassword] = useState("")
+    const [termsAccepted, setTermsAccepted] = useState(false)
+    const [isSubmitting, setIsSubmitting] = useState(false)
+
+    const resetForm = () => {
+        setUserName("")
+        setFullName("")
+        setEmail("")
+        setPhoneNumber("")
+        setPassword("")
+        setConfirmPassword("")
+        setTermsAccepted(false)
+    }
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+
+        if (!userName.trim() || !fullName.trim() || !email.trim() || !phoneNumber.trim() || !password.trim()) {
+            toast.error("All fields are required")
+            return
+        }
+
+        if (!termsAccepted) {
+            toast.error("You must accept the terms to continue")
+            return
+        }
+
+        if (password !== confirmPassword) {
+            toast.error("Passwords do not match")
+            return
+        }
+
+        try {
+            setIsSubmitting(true)
+
+            const payload: UserRegisterData = {
+                userName,
+                fullName,
+                email,
+                password,
+                phoneNumber,
+            }
+
+            await AuthApi.registerCustomerApi(payload)
+            toast.success("Account created successfully. Please sign in.")
+            resetForm()
+            navigate("/login")
+        } catch (error) {
+            if (error instanceof AxiosError) {
+                toast.error(error.response?.data?.message || error.message || "Registration failed")
+            } else {
+                toast.error("Registration failed")
+            }
+            console.error(error)
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
+
     return (
         <div className="grid min-h-screen lg:grid-cols-2">
             <div className="relative hidden lg:block">
@@ -31,15 +101,27 @@ export default function RegisterPage() {
                             Spin up a workspace for your service center in under a minute.
                         </p>
 
-                        <form className="mt-8 grid gap-4">
+                        <form className="mt-8 grid gap-4" onSubmit={handleSubmit}>
                             <div className="grid gap-2">
-                                <Label htmlFor="fullname">Full name</Label>
-                                <Input id="fullname" placeholder="Shashwat" />
+                                <Label htmlFor="fullName">Full name</Label>
+                                <Input
+                                    id="fullName"
+                                    placeholder="Shashwat"
+                                    value={fullName}
+                                    onChange={(e) => setFullName(e.target.value)}
+                                    disabled={isSubmitting}
+                                />
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="username">Username</Label>
-                                <Input id="username" placeholder="Shakyaa" />
+                                <Label htmlFor="userName">Username</Label>
+                                <Input
+                                    id="userName"
+                                    placeholder="Shakyaa"
+                                    value={userName}
+                                    onChange={(e) => setUserName(e.target.value)}
+                                    disabled={isSubmitting}
+                                />
                             </div>
 
                             <div className="grid gap-2">
@@ -48,6 +130,20 @@ export default function RegisterPage() {
                                     id="email"
                                     type="email"
                                     placeholder="shakyaa@gmail.com"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    disabled={isSubmitting}
+                                />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="phoneNumber">Phone number</Label>
+                                <Input
+                                    id="phoneNumber"
+                                    placeholder="0771234567"
+                                    value={phoneNumber}
+                                    onChange={(e) => setPhoneNumber(e.target.value)}
+                                    disabled={isSubmitting}
                                 />
                             </div>
 
@@ -60,6 +156,9 @@ export default function RegisterPage() {
                                         id="password"
                                         type="password"
                                         placeholder="••••••••"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        disabled={isSubmitting}
                                     />
                                 </div>
 
@@ -69,12 +168,21 @@ export default function RegisterPage() {
                                         id="confirmPassword"
                                         type="password"
                                         placeholder="••••••••"
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        disabled={isSubmitting}
                                     />
                                 </div>
                             </div>
 
                             <div className="flex items-start gap-2">
-                                <Checkbox id="terms" className="mt-0.5" />
+                                <Checkbox
+                                    id="terms"
+                                    className="mt-0.5"
+                                    checked={termsAccepted}
+                                    onCheckedChange={(checked) => setTermsAccepted(Boolean(checked))}
+                                    disabled={isSubmitting}
+                                />
 
                                 <Label
                                     htmlFor="terms"
@@ -84,8 +192,8 @@ export default function RegisterPage() {
                                 </Label>
                             </div>
 
-                            <Button type="button" size="lg" className="w-full">
-                                Create account
+                            <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
+                                {isSubmitting ? "Creating account..." : "Create account"}
                             </Button>
                         </form>
 

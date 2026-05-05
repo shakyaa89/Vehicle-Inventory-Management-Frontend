@@ -1,19 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
-import {
-  Bell,
-  Calendar,
-  Car,
-  LayoutDashboard,
-  LogOut,
-  Star,
-  History
-} from "lucide-react";
-
+import { Bell, Calendar, LayoutDashboard, LogOut, ClipboardList, UserPlus, Wrench, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
-import { Logo } from "../logo/logo";
+import { Logo } from "../../logo/logo";
 import { useAuthStore } from "@/store/authStore";
-import { Button } from "../ui/button";
+import { Button } from "../../ui/button";
 
 export interface NavItem {
   label: string;
@@ -27,58 +18,52 @@ const sections = [
     items: [
       {
         label: "Dashboard",
-        href: "/customer/dashboard",
-        icon: LayoutDashboard
+        href: "/staff/dashboard",
+        icon: LayoutDashboard,
       },
-      {
-        label: "My vehicles",
-        href: "/customer/vehicles",
-        icon: Car
-      }
-    ]
-  },
-  {
-    title: "Service",
-    items: [
       {
         label: "Appointments",
-        href: "/customer/appointments",
-        icon: Calendar
-      },
-      {
-        label: "Service history",
         href: "#",
-        icon: History
+        icon: Calendar,
       },
       {
-        label: "Reviews",
-        href: "/customer/reviews",
-        icon: Star
-      }
-    ]
+        label: "Register customer",
+        href: "/staff/customers/register",
+        icon: UserPlus,
+      },
+      {
+        label: "Customer directory",
+        href: "/staff/customers",
+        icon: Building2,
+      },
+    ],
   },
   {
-    title: "Inbox",
+    title: "Operations",
     items: [
       {
+        label: "Parts",
+        href: "/staff/parts",
+        icon: Wrench,
+      },
+      {
         label: "Notifications",
-        href: "/customer/notifications",
-        icon: Bell
-      }
-    ]
-  }
+        href: "/staff/notifications",
+        icon: Bell,
+      },
+    ],
+  },
 ];
 
-export default function CustomerSidebar() {
+export default function StaffSidebar() {
   const location = useLocation();
-
-  const {logout} = useAuthStore();
+  const { logout } = useAuthStore();
 
   return (
     <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-border bg-sidebar md:flex">
       <div className="flex h-full flex-col">
         <div className="flex h-16 items-center border-b px-4">
-            <Logo />
+          <Logo />
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-4">
@@ -119,7 +104,7 @@ export default function CustomerSidebar() {
         <div className="border-t p-4">
           <Button
             onClick={logout}
-            className="flex items-center gap-2 rounded-md p-2 text-xs font-medium cursor-pointer w-full"
+            className="flex w-full cursor-pointer items-center gap-2 rounded-md p-2 text-xs font-medium"
           >
             <LogOut className="h-3.5 w-3.5" />
             Logout
