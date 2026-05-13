@@ -6,7 +6,9 @@ import {
   LayoutDashboard,
   LogOut,
   Star,
-  History
+  History,
+  Package,
+  ShoppingCart
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -46,9 +48,14 @@ const sections = [
         icon: Calendar
       },
       {
-        label: "Service history",
-        href: "#",
-        icon: History
+        label: "Buy parts",
+        href: "/customer/parts",
+        icon: ShoppingCart
+      },
+      {
+        label: "Part requests",
+        href: "/customer/part-requests",
+        icon: Package
       },
       {
         label: "Reviews",

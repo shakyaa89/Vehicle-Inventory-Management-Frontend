@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Bell, Calendar, LayoutDashboard, LogOut, ClipboardList, UserPlus, Wrench, Building2 } from "lucide-react";
+import { Bell, Calendar, LayoutDashboard, LogOut, ClipboardList, UserPlus, Wrench, Building2, Package, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
 import { Logo } from "../../logo/logo";
@@ -23,7 +23,7 @@ const sections = [
       },
       {
         label: "Appointments",
-        href: "#",
+        href: "/staff/appointments",
         icon: Calendar,
       },
       {
@@ -45,6 +45,21 @@ const sections = [
         label: "Parts",
         href: "/staff/parts",
         icon: Wrench,
+      },
+      {
+        label: "Part requests",
+        href: "/staff/part-requests",
+        icon: Package,
+      },
+      {
+        label: "Sales",
+        href: "/staff/sales",
+        icon: ClipboardList,
+      },
+      {
+        label: "Sales orders",
+        href: "/staff/sales-orders",
+        icon: FileText,
       },
       {
         label: "Notifications",

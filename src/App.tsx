@@ -13,16 +13,27 @@ import VehiclesPage from './pages/Customer/Vehicles'
 import AppointmentsPage from './pages/Customer/Appointments'
 import NotificationsPage from './pages/Customer/Notifications'
 import ReviewsPage from './pages/Customer/Reviews'
+import PartRequestsPage from './pages/Customer/PartRequests'
+import PartsSalesPage from './pages/Customer/PartsSales'
+import CustomerInvoiceDetailsPage from './pages/Customer/InvoiceDetails'
 import { Toaster } from 'sonner'
 import AdminDashboard from './pages/Admin/Dashboard'
 import AdminProtectedRoute from './routes/AdminProtectedRoute'
 import PartsPage from './pages/Admin/Parts'
 import VendorsPage from './pages/Admin/Vendors'
+import PurchaseInvoicesPage from './pages/Admin/PurchaseInvoices'
+import AdminAppointmentsPage from './pages/Admin/Appointments'
+import AdminSalesOrdersPage from './pages/Admin/SalesOrders'
 import StaffDashboard from './pages/Staff/StaffDashboard'
 import StaffProtectedRoute from './routes/StaffProtectedRoute'
 import StaffCustomerRegistration from './pages/Staff/StaffCustomerRegistration'
 import StaffRegistrationPage from './pages/Admin/StaffRegistration'
 import StaffCustomersPage from './pages/Staff/StaffCustomers'
+import StaffAppointmentsPage from './pages/Staff/Appointments'
+import StaffSalesPage from './pages/Staff/Sales'
+import StaffSalesOrdersPage from './pages/Staff/SalesOrders'
+import StaffPartRequestsPage from './pages/Staff/PartRequests'
+import AdminPartRequestsPage from './pages/Admin/PartRequests'
 
 function App() {
 
@@ -101,6 +112,22 @@ function App() {
           } />
 
         <Route
+          path="/customer/parts"
+          element={
+            <CustomerProtectedRoute>
+              <PartsSalesPage />
+            </CustomerProtectedRoute>
+          } />
+
+        <Route
+          path="/customer/invoices/:id"
+          element={
+            <CustomerProtectedRoute>
+              <CustomerInvoiceDetailsPage />
+            </CustomerProtectedRoute>
+          } />
+
+        <Route
           path="/customer/notifications"
           element={
             <CustomerProtectedRoute>
@@ -113,6 +140,14 @@ function App() {
           element={
             <CustomerProtectedRoute>
               <ReviewsPage />
+            </CustomerProtectedRoute>
+          } />
+
+        <Route
+          path="/customer/part-requests"
+          element={
+            <CustomerProtectedRoute>
+              <PartRequestsPage />
             </CustomerProtectedRoute>
           } />
 
@@ -137,6 +172,34 @@ function App() {
                 <VendorsPage />
               </AdminProtectedRoute>
             } />
+        <Route
+          path="/admin/purchase-invoices"
+          element={
+            <AdminProtectedRoute>
+              <PurchaseInvoicesPage />
+            </AdminProtectedRoute>
+          } />
+        <Route
+          path="/admin/sales-orders"
+          element={
+            <AdminProtectedRoute>
+              <AdminSalesOrdersPage />
+            </AdminProtectedRoute>
+          } />
+        <Route
+          path="/admin/appointments"
+          element={
+            <AdminProtectedRoute>
+              <AdminAppointmentsPage />
+            </AdminProtectedRoute>
+          } />
+        <Route
+          path="/admin/part-requests"
+          element={
+            <AdminProtectedRoute>
+              <AdminPartRequestsPage />
+            </AdminProtectedRoute>
+          } />
         <Route
           path="/admin/staff"
           element={
@@ -163,6 +226,34 @@ function App() {
           element={
             <StaffProtectedRoute>
               <StaffCustomersPage />
+            </StaffProtectedRoute>
+          } />
+        <Route
+          path="/staff/appointments"
+          element={
+            <StaffProtectedRoute>
+              <StaffAppointmentsPage />
+            </StaffProtectedRoute>
+          } />
+        <Route
+          path="/staff/sales"
+          element={
+            <StaffProtectedRoute>
+              <StaffSalesPage />
+            </StaffProtectedRoute>
+          } />
+        <Route
+          path="/staff/sales-orders"
+          element={
+            <StaffProtectedRoute>
+              <StaffSalesOrdersPage />
+            </StaffProtectedRoute>
+          } />
+        <Route
+          path="/staff/part-requests"
+          element={
+            <StaffProtectedRoute>
+              <StaffPartRequestsPage />
             </StaffProtectedRoute>
           } />
       </Routes>

@@ -24,7 +24,7 @@ import { useAuthStore } from "@/store/authStore";
 import type { Appointment, AppointmentData } from "@/types/appointment";
 import type { Vehicle } from "@/types/vehicle";
 import { AxiosError } from "axios";
-import { CalendarClock, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -41,6 +41,13 @@ export default function AppointmentsPage() {
     const [vehicleId, setVehicleId] = useState("");
 
     const customerId = Number(user?.id ?? 0);
+
+    const vehicleLabelById = new Map(
+        vehicles.map((vehicle) => [
+            vehicle.id,
+            `${vehicle.year} ${vehicle.make} ${vehicle.model} (${vehicle.vehicleNumber})`,
+        ])
+    );
 
     const resetForm = () => {
         setScheduledAt("");
@@ -218,25 +225,48 @@ export default function AppointmentsPage() {
                                 </CardContent>
                             </Card>
                         ) : (
-                            <div className="grid gap-4 md:grid-cols-2">
-                                {appointments.map((appointment) => (
-                                    <Card key={appointment.id}>
-                                        <CardHeader className="flex flex-row items-start gap-3">
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                                                <CalendarClock className="h-5 w-5" />
-                                            </div>
-                                            <div>
-                                                <CardTitle className="text-base">Appointment #{appointment.id}</CardTitle>
-                                                <p className="text-xs text-muted-foreground">Status: {appointment.status}</p>
-                                            </div>
-                                        </CardHeader>
-                                        <CardContent className="space-y-1 text-sm">
-                                            <p>Vehicle ID: {appointment.vehicleId}</p>
-                                            <p>Scheduled: {new Date(appointment.scheduledAt).toLocaleString()}</p>
-                                        </CardContent>
-                                    </Card>
-                                ))}
-                            </div>
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Appointment history</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-sm">
+                                            <thead>
+                                                <tr className="border-b bg-muted/50">
+                                                    <th className="px-4 py-3 text-left font-semibold">Appointment</th>
+                                                    <th className="px-4 py-3 text-left font-semibold">Vehicle</th>
+                                                    <th className="px-4 py-3 text-left font-semibold">Scheduled</th>
+                                                    <th className="px-4 py-3 text-left font-semibold">Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {appointments.map((appointment) => {
+                                                    const vehicleLabel =
+                                                        vehicleLabelById.get(appointment.vehicleId) ??
+                                                        `Vehicle #${appointment.vehicleId}`;
+
+                                                    return (
+                                                        <tr
+                                                            key={appointment.id}
+                                                            className="border-b hover:bg-muted/30 transition-colors"
+                                                        >
+                                                            <td className="px-4 py-3 font-medium">
+                                                                #{appointment.id}
+                                                            </td>
+                                                            <td className="px-4 py-3">{vehicleLabel}</td>
+                                                            <td className="px-4 py-3">
+                                                                {new Date(appointment.scheduledAt).toLocaleString()}
+                                                            </td>
+                                                            <td className="px-4 py-3">{appointment.status}</td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </CardContent>
+                            </Card>
                         )}
                     </div>
                 </main>

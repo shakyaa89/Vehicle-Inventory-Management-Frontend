@@ -7,7 +7,10 @@ import {
   Star,
   Handshake,
   Wrench,
-  Users
+  Users,
+  FileText,
+  Package,
+  ClipboardList
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -42,6 +45,16 @@ const sections = [
         icon: Handshake
       },
       {
+        label: "Purchase Invoices",
+        href: "/admin/purchase-invoices",
+        icon: FileText
+      },
+      {
+        label: "Sales orders",
+        href: "/admin/sales-orders",
+        icon: ClipboardList
+      },
+      {
         label: "Staff",
         href: "/admin/staff",
         icon: Users
@@ -53,8 +66,13 @@ const sections = [
     items: [
       {
         label: "Appointments",
-        href: "#",
+        href: "/admin/appointments",
         icon: Calendar
+      },
+      {
+        label: "Part requests",
+        href: "/admin/part-requests",
+        icon: Package
       },
       {
         label: "All Reviews",
