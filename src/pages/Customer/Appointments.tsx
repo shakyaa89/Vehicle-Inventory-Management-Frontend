@@ -37,20 +37,20 @@ export default function AppointmentsPage() {
     const [isCreatingAppointment, setIsCreatingAppointment] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const [scheduledAt, setScheduledAt] = useState("");
+    const [appointmentDate, setAppointmentDate] = useState("");
+    const [appointmentTime, setAppointmentTime] = useState("");
     const [vehicleId, setVehicleId] = useState("");
 
     const customerId = Number(user?.id ?? 0);
 
-    const vehicleLabelById = new Map(
-        vehicles.map((vehicle) => [
-            vehicle.id,
-            `${vehicle.year} ${vehicle.make} ${vehicle.model} (${vehicle.vehicleNumber})`,
-        ])
-    );
+    // Generate time slots: 10 AM to 2 PM with 30-min intervals
+    const timeSlots = [
+        "10:00", "10:30", "11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00"
+    ];
 
     const resetForm = () => {
-        setScheduledAt("");
+        setAppointmentDate("");
+        setAppointmentTime("");
         setVehicleId("");
     };
 
@@ -103,9 +103,17 @@ export default function AppointmentsPage() {
             return;
         }
 
+        if (!appointmentDate || !appointmentTime) {
+            toast.error("Please select date and time.");
+            return;
+        }
+
+        // Combine date and time
+        const scheduledAtDateTime = new Date(`${appointmentDate}T${appointmentTime}`);
+
         const appointmentData: AppointmentData = {
             customerId,
-            scheduledAt: new Date(scheduledAt).toISOString(),
+            scheduledAt: scheduledAtDateTime.toISOString(),
             status: "Pending",
             vehicleId: Number(vehicleId),
         };
@@ -165,14 +173,37 @@ export default function AppointmentsPage() {
 
                                 <form onSubmit={handleCreateAppointment} className="space-y-4 px-4 pb-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="scheduledAt">Scheduled At</Label>
+                                        <Label htmlFor="appointmentDate">Appointment Date</Label>
                                         <Input
-                                            id="scheduledAt"
-                                            type="datetime-local"
-                                            value={scheduledAt}
-                                            onChange={(event) => setScheduledAt(event.target.value)}
+                                            id="appointmentDate"
+                                            type="date"
+                                            value={appointmentDate}
+                                            onChange={(event) => setAppointmentDate(event.target.value)}
                                             required
                                         />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label>Appointment Time</Label>
+                                        <Select value={appointmentTime} onValueChange={setAppointmentTime}>
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue placeholder="Select time (10 AM - 2 PM)" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {timeSlots.map((time) => {
+                                                    const [hours, minutes] = time.split(":");
+                                                    const hour = parseInt(hours);
+                                                    const ampm = hour >= 12 ? "PM" : "AM";
+                                                    const display12 = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+                                                    const label = `${display12}:${minutes} ${ampm}`;
+                                                    return (
+                                                        <SelectItem key={time} value={time}>
+                                                            {label}
+                                                        </SelectItem>
+                                                    );
+                                                })}
+                                            </SelectContent>
+                                        </Select>
                                     </div>
 
                                     <div className="space-y-2">
@@ -243,7 +274,7 @@ export default function AppointmentsPage() {
                                             <tbody>
                                                 {appointments.map((appointment) => {
                                                     const vehicleLabel =
-                                                        vehicleLabelById.get(appointment.vehicleId) ??
+                                                        appointment.vehicleMake ||
                                                         `Vehicle #${appointment.vehicleId}`;
 
                                                     return (

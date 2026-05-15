@@ -11,7 +11,7 @@ interface StatCardProps {
   helper?: string
 }
 
-export function StatCard({ label, value, delta, trend = "up", icon: Icon, helper }: StatCardProps) {
+export function StatCard({ label, value, trend = "up", icon: Icon, helper }: StatCardProps) {
   return (
     <Card>
       <CardContent className="flex flex-col gap-3 p-5 px-10">
@@ -25,20 +25,6 @@ export function StatCard({ label, value, delta, trend = "up", icon: Icon, helper
         </div>
         <div className="flex items-end justify-between gap-3">
           <p className="text-3xl font-semibold tracking-tight">{value}</p>
-          {delta && (
-            <span
-              className={cn(
-                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
-                trend === "up" && "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-                trend === "down" && "bg-destructive/10 text-destructive",
-                trend === "flat" && "bg-muted text-muted-foreground",
-              )}
-            >
-              {trend === "up" && <ArrowUpRight className="h-3 w-3" />}
-              {trend === "down" && <ArrowDownRight className="h-3 w-3" />}
-              {delta}
-            </span>
-          )}
         </div>
         {helper && <p className="text-xs text-muted-foreground">{helper}</p>}
       </CardContent>

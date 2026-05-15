@@ -12,35 +12,47 @@ import CustomerTopbar from "@/components/dashboard/Customer/CustomerNavbar";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { StatCard } from "@/components/dashboard/stat-card";
 
 import { Link } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
 import { Badge } from "@/components/ui/badge";
+import { useEffect, useState } from "react";
+import { VehicleApi, AppointmentApi, SalesInvoiceApi } from "@/constants/Api";
+import type { Vehicle } from "@/types/vehicle";
+import type { Appointment } from "@/types/appointment";
+import type { SalesInvoiceData } from "@/types/salesInvoice";
 
-const upcoming = [
-    {
-        service: "Oil Change & Multi-point Inspection",
-        vehicle: "2019 Honda Civic EX",
-        date: "May 4, 2026",
-        time: "10:30 AM",
-        tech: "Diego Romero",
-        status: "Confirmed",
-    },
-    {
-        service: "Brake Pad Replacement",
-        vehicle: "2014 Toyota Tacoma",
-        date: "May 18, 2026",
-        time: "2:00 PM",
-        tech: "Pending assignment",
-        status: "Pending",
-    },
-]
+const upcomingFallback: Appointment[] = [];
 
 export default function CustomerDashboard() {
 
     const { user } = useAuthStore();
+    const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+    const [appointments, setAppointments] = useState<Appointment[]>(upcomingFallback);
+    const [invoices, setInvoices] = useState<SalesInvoiceData[]>([]);
+
+    useEffect(() => {
+        if (!user || !user.id) return;
+
+        const fetchData = async () => {
+            try {
+                const [vRes, aRes, sRes] = await Promise.all([
+                    VehicleApi.getVehiclesByCustomerApi(user.id),
+                    AppointmentApi.getAppointmentsByCustomerApi(user.id),
+                    SalesInvoiceApi.getSalesInvoicesByCustomerApi(user.id),
+                ]);
+
+                setVehicles(vRes?.data ?? []);
+                setAppointments(aRes?.data ?? []);
+                setInvoices(sRes?.data ?? []);
+            } catch (err) {
+                console.error("Dashboard fetch error", err);
+            }
+        };
+
+        fetchData();
+    }, [user]);
 
     return (
         <div className="flex min-h-screen bg-muted/30">
@@ -81,15 +93,44 @@ export default function CustomerDashboard() {
 
 
                         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                            <StatCard label="Vehicles" value="2" icon={Car} />
-                            <StatCard label="Upcoming" value="2" icon={Calendar} />
-                            <StatCard label="Spent (YTD)" value="Rs 1,20,000" icon={Wallet} />
-                            <StatCard label="Lifetime visits" value="14" icon={Wrench} />
+                            <StatCard label="Vehicles" value={String(vehicles.length)} icon={Car} />
+                            <StatCard
+                                label="Upcoming"
+                                value={String(appointments.filter(a => {
+                                    try {
+                                        const d = new Date(a.scheduledAt);
+                                        return d >= new Date() && a.status?.toLowerCase() !== "cancelled";
+                                    } catch {
+                                        return false;
+                                    }
+                                }).length)}
+                                icon={Calendar}
+                            />
+                            <StatCard
+                                label="Spent (YTD)"
+                                value={(() => {
+                                    const year = new Date().getFullYear();
+                                    const total = invoices.reduce((sum, inv) => {
+                                        const created = inv.createdAt ? new Date(inv.createdAt) : null;
+                                        if (created && created.getFullYear() === year) {
+                                            return sum + (inv.totalAmount ?? 0);
+                                        }
+                                        return sum;
+                                    }, 0);
+                                    return `Rs ${total.toLocaleString()}`;
+                                })()}
+                                icon={Wallet}
+                            />
+                            <StatCard
+                                label="Lifetime visits"
+                                value={String(appointments.filter(a => a.status?.toLowerCase() === "completed").length)}
+                                icon={Wrench}
+                            />
                         </div>
 
 
                         <div className="grid gap-6 lg:grid-cols-3">
-                            <Card className="lg:col-span-2">
+                            <Card className="lg:col-span-3">
                                 <CardHeader>
                                     <div className="flex items-center justify-between">
                                         <CardTitle className="text-base">Upcoming appointments</CardTitle>
@@ -99,57 +140,43 @@ export default function CustomerDashboard() {
                                     </div>
                                 </CardHeader>
                                 <CardContent className="space-y-3">
-                                    {upcoming.map((u, i) => (
-                                        <div
-                                            key={i}
-                                            className="flex flex-col gap-3 rounded-lg border bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
-                                        >
-                                            <div>
-                                                <p className="text-sm font-medium">{u.service}</p>
-                                                <p className="text-xs text-muted-foreground">{u.vehicle}</p>
-                                                <p className="mt-1 text-xs text-muted-foreground">
-                                                    Tech: {u.tech}
-                                                </p>
-                                            </div>
-                                            <div className="flex items-center justify-between gap-4 sm:flex-col sm:items-end">
-                                                <div className="text-right">
-                                                    <p className="text-sm font-medium">{u.date}</p>
-                                                    <p className="text-xs text-muted-foreground">{u.time}</p>
+                                    {appointments
+                                        .filter(a => {
+                                            try {
+                                                const d = new Date(a.scheduledAt);
+                                                return d >= new Date() && a.status?.toLowerCase() !== "cancelled";
+                                            } catch {
+                                                return false;
+                                            }
+                                        })
+                                        .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
+                                        .slice(0, 6)
+                                        .map((a) => {
+                                            const dt = new Date(a.scheduledAt);
+                                            const date = dt.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+                                            const time = dt.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+                                            return (
+                                                <div
+                                                    key={a.id}
+                                                    className="flex flex-col gap-3 rounded-lg border bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
+                                                >
+                                                    <div>
+                                                        <p className="text-sm font-medium">Service</p>
+                                                        <p className="text-xs text-muted-foreground">{a.vehicleMake ?? "Vehicle"}</p>
+                                                        <p className="mt-1 text-xs text-muted-foreground">Tech: TBD</p>
+                                                    </div>
+                                                    <div className="flex items-center justify-between gap-4 sm:flex-col sm:items-end">
+                                                        <div className="text-right">
+                                                            <p className="text-sm font-medium">{date}</p>
+                                                            <p className="text-xs text-muted-foreground">{time}</p>
+                                                        </div>
+                                                        <Badge variant={a.status?.toLowerCase() === "confirmed" ? "default" : "secondary"}>
+                                                            {a.status}
+                                                        </Badge>
+                                                    </div>
                                                 </div>
-                                                <Badge variant={u.status === "Confirmed" ? "default" : "secondary"}>
-                                                    {u.status}
-                                                </Badge>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </CardContent>
-                            </Card>
-
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="text-base">Vehicle health</CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-5">
-                                    <div className="space-y-2">
-                                        <div className="flex items-center justify-between">
-                                            <p className="text-sm font-medium">2019 Honda Civic</p>
-                                            <span className="text-xs text-muted-foreground">87%</span>
-                                        </div>
-                                        <Progress value={87} />
-                                        <p className="text-xs text-muted-foreground">
-                                            Brake pads at 32%. Replace within 5,000 mi.
-                                        </p>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <div className="flex items-center justify-between">
-                                            <p className="text-sm font-medium">2014 Toyota Tacoma</p>
-                                            <span className="text-xs text-muted-foreground">71%</span>
-                                        </div>
-                                        <Progress value={71} />
-                                        <p className="text-xs text-muted-foreground">
-                                            Coolant flush due in 2 months.
-                                        </p>
-                                    </div>
+                                            );
+                                        })}
                                 </CardContent>
                             </Card>
                         </div>

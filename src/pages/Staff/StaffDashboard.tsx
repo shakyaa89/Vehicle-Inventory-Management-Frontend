@@ -1,203 +1,153 @@
-import { Calendar, ClipboardList, Clock3, Gauge, Wrench, Bell, UserPlus } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { StatCard } from "@/components/dashboard/stat-card";
+import { Calendar, Wallet, Wrench, Clock, ArrowRight } from "lucide-react";
 import StaffSidebar from "@/components/dashboard/Staff/StaffSidebar";
-import StaffNavbar from "@/components/dashboard/Staff/StaffNavbar";
-import { useAuthStore } from "@/store/authStore";
+import StaffTopbar from "@/components/dashboard/Staff/StaffNavbar";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { StatCard } from "@/components/dashboard/stat-card";
+import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
-
-const todaysTasks = [];
-
-const incomingAppointments = [];
-
-const alerts = [];
-
+import { useEffect, useState } from "react";
+import { AppointmentApi, SalesInvoiceApi } from "@/constants/Api";
+import type { Appointment } from "@/types/appointment";
+import type { SalesInvoiceData } from "@/types/salesInvoice";
 
 export default function StaffDashboard() {
-  const { user } = useAuthStore();
+    const [appointments, setAppointments] = useState<Appointment[]>([]);
+    const [invoices, setInvoices] = useState<SalesInvoiceData[]>([]);
 
-  return (
-    <div className="flex min-h-screen bg-muted/30">
-      <StaffSidebar />
+    useEffect(() => {
+        const fetch = async () => {
+            try {
+                const [aRes, sRes] = await Promise.all([
+                    AppointmentApi.getAppointmentsApi(),
+                    SalesInvoiceApi.getSalesInvoicesApi(),
+                ]);
+                setAppointments(aRes?.data ?? []);
+                setInvoices(sRes?.data ?? []);
+            } catch (err) {
+                console.error("Staff dashboard fetch error", err);
+            }
+        };
+        fetch();
+    }, []);
 
-      <div className="flex flex-1 flex-col min-w-0">
-        <StaffNavbar />
+    const today = new Date();
+    const isSameDay = (d1?: string | null) => {
+        if (!d1) return false;
+        const dt = new Date(d1);
+        return dt.getFullYear() === today.getFullYear() && dt.getMonth() === today.getMonth() && dt.getDate() === today.getDate();
+    };
 
-        <main className="flex-1 px-4 py-6 md:px-8 md:py-8">
-          <div className="space-y-6">
-            <div className="flex flex-col gap-4 rounded-2xl border bg-linear-to-br from-primary/10 via-card to-card p-6 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Welcome back,</p>
-                <h2 className="text-2xl font-semibold tracking-tight">{user?.fullName}</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Your service queue and daily tasks are ready.
-                </p>
-              </div>
+    const totalAppointments = appointments.length;
+    const todaysAppointments = appointments.filter(a => isSameDay(a.scheduledAt)).length;
+    const pendingAppointments = appointments.filter(a => a.status?.toLowerCase() === "pending").length;
 
-              <Button size="lg" asChild>
-                <Link to="/staff/customers/register">
-                  <UserPlus className="mr-2 h-4 w-4" />
-                  Register customer
-                </Link>
-              </Button>
+    const ytdRevenue = (() => {
+        const year = today.getFullYear();
+        const total = invoices.reduce((sum, inv) => {
+            const created = inv.createdAt ? new Date(inv.createdAt) : null;
+            if (created && created.getFullYear() === year) return sum + (inv.totalAmount ?? 0);
+            return sum;
+        }, 0);
+        return `Rs ${total.toLocaleString()}`;
+    })();
 
-              <Button variant="outline" size="lg" asChild>
-                <Link to="/staff/customers">
-                  View customer directory
-                </Link>
-              </Button>
-            </div>
+    const upcoming = appointments
+        .filter(a => {
+            try {
+                const d = new Date(a.scheduledAt);
+                return d >= new Date() && a.status?.toLowerCase() !== "cancelled";
+            } catch {
+                return false;
+            }
+        })
+        .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
+        .slice(0, 6);
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <StatCard label="Open tasks" value="0" icon={ClipboardList} />
-              <StatCard label="Appointments" value="0" icon={Calendar} />
-              <StatCard label="Pending parts" value="0" icon={Wrench} />
-              <StatCard label="Workload" value="0%" icon={Gauge} />
-            </div>
+    return (
+        <div className="flex min-h-screen bg-muted/30">
+            <StaffSidebar />
+            <div className="flex flex-1 flex-col min-w-0">
+                <StaffTopbar />
+                <main className="flex-1 px-4 py-6 md:px-8 md:py-8">
+                    <div className="space-y-6">
+                        <div className="flex flex-col gap-4 rounded-2xl border bg-linear-to-br from-primary/10 via-card to-card p-6 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <p className="text-sm text-muted-foreground">Good day,</p>
+                                <h2 className="text-2xl font-semibold tracking-tight">Staff Dashboard</h2>
+                                <p className="mt-1 text-sm text-muted-foreground">Overview of appointments and revenue.</p>
+                            </div>
 
-            <div className="grid gap-6 lg:grid-cols-3">
-              <Card className="lg:col-span-2">
-                <CardHeader>
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <CardTitle className="text-base">Today&apos;s tasks</CardTitle>
-                      <CardDescription>Jobs assigned to your shift</CardDescription>
-                    </div>
-                    <Badge variant="secondary">Shift A</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {todaysTasks.length > 0 ? todaysTasks.map((task) => (
-                    <div key={task.title} className="flex flex-col gap-3 rounded-lg border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <p className="text-sm font-medium">{task.title}</p>
-                        <p className="text-xs text-muted-foreground">{task.vehicle}</p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="text-right">
-                          <p className="text-sm font-medium">{task.time}</p>
-                          <p className="text-xs text-muted-foreground">{task.status}</p>
+                            <Button size="lg" asChild>
+                                <Link to="/staff/appointments/new">
+                                    Create appointment
+                                    <ArrowRight className="ml-2 h-4 w-4" />
+                                </Link>
+                            </Button>
                         </div>
-                        <Badge variant="outline">Open</Badge>
-                      </div>
-                    </div>
-                  )) : (
-                    <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-                      No tasks assigned for today.
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Shift snapshot</CardTitle>
-                  <CardDescription>Current workload and pace</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-5">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium">Queue progress</p>
-                      <span className="text-xs text-muted-foreground">0%</span>
-                    </div>
-                    <Progress value={0} />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium">Efficiency</p>
-                      <span className="text-xs text-muted-foreground">0%</span>
-                    </div>
-                    <Progress value={0} />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium">On-time completion</p>
-                      <span className="text-xs text-muted-foreground">0%</span>
-                    </div>
-                    <Progress value={0} />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="grid gap-6 lg:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Incoming appointments</CardTitle>
-                  <CardDescription>Customers arriving today</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {incomingAppointments.length > 0 ? incomingAppointments.map((item) => (
-                    <div key={item.customer} className="flex items-center justify-between rounded-lg border bg-card p-4">
-                      <div>
-                        <p className="text-sm font-medium">{item.customer}</p>
-                        <p className="text-xs text-muted-foreground">{item.service}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium">{item.slot}</p>
-                        <Badge variant="secondary">{item.status}</Badge>
-                      </div>
-                    </div>
-                  )) : (
-                    <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-                      No appointments scheduled for today.
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Operational alerts</CardTitle>
-                  <CardDescription>Things that need attention</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {alerts.length > 0 ? alerts.map((alert) => (
-                    <div key={alert.label} className="flex items-center justify-between rounded-lg border bg-card p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
-                          <Bell className="h-4 w-4" />
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                            <StatCard label="Total appts" value={String(totalAppointments)} icon={Calendar} />
+                            <StatCard label="Today's appts" value={String(todaysAppointments)} icon={Calendar} />
+                            <StatCard label="Pending" value={String(pendingAppointments)} icon={Wrench} />
+                            <StatCard label="YTD Revenue" value={ytdRevenue} icon={Wallet} />
                         </div>
-                        <div>
-                          <p className="text-sm font-medium">{alert.label}</p>
-                          <p className="text-xs text-muted-foreground">Live queue update</p>
+
+                        <div className="grid gap-6 lg:grid-cols-3">
+                            <Card className="lg:col-span-3">
+                                <CardHeader>
+                                    <div className="flex items-center justify-between">
+                                        <CardTitle className="text-base">Upcoming appointments</CardTitle>
+                                        <Button variant="ghost" size="sm" asChild>
+                                            <Link to="/staff/appointments">View all</Link>
+                                        </Button>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                    {upcoming.map((a) => {
+                                        const dt = new Date(a.scheduledAt);
+                                        const date = dt.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+                                        const time = dt.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+                                        return (
+                                            <div key={a.id} className="flex flex-col gap-3 rounded-lg border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+                                                    <div>
+                                                        <p className="text-sm font-medium">{a.customerName ?? `Customer #${a.customerId ?? a.customerId}`}</p>
+                                                        <p className="text-xs text-muted-foreground">{a.vehicleMake ?? `Vehicle #${a.vehicleId}`}</p>
+                                                    </div>
+                                                <div className="flex items-center justify-between gap-4 sm:flex-col sm:items-end">
+                                                    <div className="text-right">
+                                                        <p className="text-sm font-medium">{date}</p>
+                                                        <p className="text-xs text-muted-foreground">{time}</p>
+                                                    </div>
+                                                    <Badge variant={a.status?.toLowerCase() === "confirmed" ? "default" : "secondary"}>{a.status}</Badge>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </CardContent>
+                            </Card>
                         </div>
-                      </div>
-                      <span className="text-lg font-semibold">{alert.value}</span>
+
+                        <Card className="border-primary/30 bg-primary/5">
+                            <CardContent className="flex flex-col gap-3 p-6 sm:flex-row sm:items-center sm:justify-between">
+                                <div className="flex items-start gap-3">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary">
+                                        <Clock className="h-5 w-5" />
+                                    </div>
+                                    <div>
+                                        <p className="font-medium">Quick reminder</p>
+                                        <p className="text-sm text-muted-foreground">Check today's schedule and prepare tools.</p>
+                                    </div>
+                                </div>
+                                <Button asChild>
+                                    <Link to="/staff/appointments/new">Create</Link>
+                                </Button>
+                            </CardContent>
+                        </Card>
                     </div>
-                  )) : (
-                    <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-                      No operational alerts right now.
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                </main>
             </div>
-
-            <Card className="border-primary/30 bg-primary/5">
-              <CardContent className="flex flex-col gap-3 p-6 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary">
-                    <Clock3 className="h-5 w-5" />
-                  </div>
-
-                  <div>
-                    <p className="font-medium">Break reminder</p>
-                    <p className="text-sm text-muted-foreground">
-                      Take a short break after your next completed task.
-                    </p>
-                  </div>
-                </div>
-
-                <Button variant="outline">View shift notes</Button>
-              </CardContent>
-            </Card>
-          </div>
-        </main>
-      </div>
-    </div>
-  );
+        </div>
+    );
 }

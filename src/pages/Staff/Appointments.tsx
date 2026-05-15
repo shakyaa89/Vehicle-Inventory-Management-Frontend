@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { AxiosError } from "axios";
 import { toast } from "sonner";
 import { CalendarClock, CheckCircle2, XCircle } from "lucide-react";
@@ -6,10 +6,8 @@ import StaffNavbar from "@/components/dashboard/Staff/StaffNavbar";
 import StaffSidebar from "@/components/dashboard/Staff/StaffSidebar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AppointmentApi, AuthApi, VehicleApi } from "@/constants/Api";
+import { AppointmentApi } from "@/constants/Api";
 import type { Appointment } from "@/types/appointment";
-import type { CustomerStats } from "@/types/auth";
-import type { Vehicle } from "@/types/vehicle";
 
 const isTerminalStatus = (status: string) => {
   const normalized = status.trim().toLowerCase();
@@ -20,25 +18,9 @@ type UpdateAction = "complete" | "cancel";
 
 export default function StaffAppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [customers, setCustomers] = useState<CustomerStats[]>([]);
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingReferences, setIsLoadingReferences] = useState(false);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [updatingAction, setUpdatingAction] = useState<UpdateAction | null>(null);
-
-  const customerById = useMemo(() => {
-    return new Map(customers.map((customer) => [customer.id, customer.fullName]));
-  }, [customers]);
-
-  const vehicleById = useMemo(() => {
-    return new Map(
-      vehicles.map((vehicle) => [
-        vehicle.id,
-        `${vehicle.year} ${vehicle.make} ${vehicle.model} (${vehicle.vehicleNumber})`,
-      ])
-    );
-  }, [vehicles]);
 
   const fetchAppointments = async () => {
     setIsLoading(true);
@@ -82,29 +64,8 @@ export default function StaffAppointmentsPage() {
     }
   };
 
-  const fetchReferences = async () => {
-    setIsLoadingReferences(true);
-    try {
-      const [customersResponse, vehiclesResponse] = await Promise.all([
-        AuthApi.getCustomersApi(),
-        VehicleApi.getAllVehiclesApi(),
-      ]);
-      setCustomers(customersResponse.data ?? []);
-      setVehicles(vehiclesResponse.data ?? []);
-    } catch (error: unknown) {
-      if (error instanceof AxiosError) {
-        toast.error(error.response?.data?.message ?? "Failed to load customer or vehicle data.");
-      } else {
-        toast.error("Failed to load customer or vehicle data.");
-      }
-    } finally {
-      setIsLoadingReferences(false);
-    }
-  };
-
   useEffect(() => {
     fetchAppointments();
-    fetchReferences();
   }, []);
 
   return (
@@ -140,12 +101,8 @@ export default function StaffAppointmentsPage() {
                 {appointments.map((appointment) => {
                   const isTerminal = isTerminalStatus(appointment.status);
                   const isUpdating = updatingId === appointment.id;
-                  const customerName =
-                    customerById.get(appointment.customerId) ??
-                    (isLoadingReferences ? "Loading customer..." : "Unknown customer");
-                  const vehicleName =
-                    vehicleById.get(appointment.vehicleId) ??
-                    (isLoadingReferences ? "Loading vehicle..." : "Unknown vehicle");
+                  const customerName = appointment.customerName || "Unknown customer";
+                  const vehicleName = appointment.vehicleMake || "Unknown vehicle";
 
                   return (
                     <Card key={appointment.id}>

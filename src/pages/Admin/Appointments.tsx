@@ -1,15 +1,22 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { AxiosError } from "axios";
 import { toast } from "sonner";
-import { CalendarClock, CheckCircle2, XCircle } from "lucide-react";
+import { CalendarClock, CheckCircle2, Trash, XCircle } from "lucide-react";
 import AdminNavbar from "@/components/dashboard/Admin/AdminNavbar";
 import AdminSidebar from "@/components/dashboard/Admin/AdminSidebar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AppointmentApi, AuthApi, VehicleApi } from "@/constants/Api";
+import { AppointmentApi } from "@/constants/Api";
 import type { Appointment } from "@/types/appointment";
-import type { CustomerStats } from "@/types/auth";
-import type { Vehicle } from "@/types/vehicle";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const isTerminalStatus = (status: string) => {
   const normalized = status.trim().toLowerCase();
@@ -17,28 +24,18 @@ const isTerminalStatus = (status: string) => {
 };
 
 type UpdateAction = "complete" | "cancel";
+type DialogAction = "delete" | "complete" | "cancel";
 
 export default function AdminAppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [customers, setCustomers] = useState<CustomerStats[]>([]);
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingReferences, setIsLoadingReferences] = useState(false);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [updatingAction, setUpdatingAction] = useState<UpdateAction | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
-  const customerById = useMemo(() => {
-    return new Map(customers.map((customer) => [customer.id, customer.fullName]));
-  }, [customers]);
-
-  const vehicleById = useMemo(() => {
-    return new Map(
-      vehicles.map((vehicle) => [
-        vehicle.id,
-        `${vehicle.year} ${vehicle.make} ${vehicle.model} (${vehicle.vehicleNumber})`,
-      ])
-    );
-  }, [vehicles]);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [dialogAction, setDialogAction] = useState<DialogAction | null>(null);
 
   const fetchAppointments = async () => {
     setIsLoading(true);
@@ -82,30 +79,60 @@ export default function AdminAppointmentsPage() {
     }
   };
 
-  const fetchReferences = async () => {
-    setIsLoadingReferences(true);
+  const handleDelete = async (id: number) => {
+    setDeleting(true);
     try {
-      const [customersResponse, vehiclesResponse] = await Promise.all([
-        AuthApi.getCustomersApi(),
-        VehicleApi.getAllVehiclesApi(),
-      ]);
-      setCustomers(customersResponse.data ?? []);
-      setVehicles(vehiclesResponse.data ?? []);
+      await AppointmentApi.deleteAppointmentApi(id);
+      toast.success("Appointment Deleted.");
+      await fetchAppointments();
     } catch (error: unknown) {
       if (error instanceof AxiosError) {
-        toast.error(error.response?.data?.message ?? "Failed to load customer or vehicle data.");
+        toast.error(error.response?.data?.message ?? "Failed to delete appointment.");
       } else {
-        toast.error("Failed to load customer or vehicle data.");
+        toast.error("Failed to delete appointment.");
       }
     } finally {
-      setIsLoadingReferences(false);
+      setDeleting(false);
     }
+  };
+
+  const handleConfirm = async () => {
+    if (!selectedId || !dialogAction) return;
+
+    if (dialogAction === "complete") {
+      await handleUpdateStatus(selectedId, "complete");
+    }
+
+    if (dialogAction === "cancel") {
+      await handleUpdateStatus(selectedId, "cancel");
+    }
+
+    if (dialogAction === "delete") {
+      await handleDelete(selectedId);
+    }
+
+    setDialogOpen(false);
+    setSelectedId(null);
+    setDialogAction(null);
   };
 
   useEffect(() => {
     fetchAppointments();
-    fetchReferences();
   }, []);
+
+  const openDialog = (id: number, action: DialogAction) => {
+    setSelectedId(id);
+    setDialogAction(action);
+    setDialogOpen(true);
+  };
+
+  const getDialogText = () => {
+    if (dialogAction === "complete") return "Mark this appointment as completed?";
+    if (dialogAction === "cancel") return "Cancel this appointment?";
+    return "Delete this appointment permanently?";
+  };
+
+  const isTerminal = (status: string) => isTerminalStatus(status);
 
   return (
     <div className="flex min-h-screen bg-muted/30">
@@ -138,14 +165,9 @@ export default function AdminAppointmentsPage() {
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
                 {appointments.map((appointment) => {
-                  const isTerminal = isTerminalStatus(appointment.status);
                   const isUpdating = updatingId === appointment.id;
-                  const customerName =
-                    customerById.get(appointment.customerId) ??
-                    (isLoadingReferences ? "Loading customer..." : "Unknown customer");
-                  const vehicleName =
-                    vehicleById.get(appointment.vehicleId) ??
-                    (isLoadingReferences ? "Loading vehicle..." : "Unknown vehicle");
+                  const customerName = appointment.customerName || "Unknown customer";
+                  const vehicleName = appointment.vehicleMake || "Unknown vehicle";
 
                   return (
                     <Card key={appointment.id}>
@@ -154,44 +176,57 @@ export default function AdminAppointmentsPage() {
                           <CalendarClock className="h-5 w-5" />
                         </div>
                         <div>
-                          <CardTitle className="text-base">Appointment #{appointment.id}</CardTitle>
-                          <p className="text-xs text-muted-foreground">Status: {appointment.status}</p>
+                          <CardTitle className="text-base">
+                            Appointment #{appointment.id}
+                          </CardTitle>
+                          <p className="text-xs text-muted-foreground">
+                            Status: {appointment.status}
+                          </p>
                         </div>
                       </CardHeader>
+
                       <CardContent className="space-y-1 text-sm">
                         <p>Customer: {customerName}</p>
                         <p>Vehicle: {vehicleName}</p>
-                        <p>Scheduled: {new Date(appointment.scheduledAt).toLocaleString()}</p>
+                        <p>
+                          Scheduled:{" "}
+                          {new Date(appointment.scheduledAt).toLocaleString()}
+                        </p>
 
                         <div className="flex flex-wrap gap-2 pt-3">
                           <Button
                             size="sm"
-                            onClick={() => handleUpdateStatus(appointment.id, "complete")}
-                            disabled={isTerminal || isUpdating}
+                            onClick={() => openDialog(appointment.id, "complete")}
+                            disabled={isTerminal(appointment.status) || isUpdating}
                           >
-                            {isUpdating && updatingAction === "complete" ? (
-                              "Completing..."
-                            ) : (
-                              <span className="inline-flex items-center gap-2">
-                                <CheckCircle2 className="h-4 w-4" />
-                                Complete
-                              </span>
-                            )}
+                            <span className="inline-flex items-center gap-2">
+                              <CheckCircle2 className="h-4 w-4" />
+                              Complete
+                            </span>
                           </Button>
+
                           <Button
                             size="sm"
                             variant="destructive"
-                            onClick={() => handleUpdateStatus(appointment.id, "cancel")}
-                            disabled={isTerminal || isUpdating}
+                            onClick={() => openDialog(appointment.id, "cancel")}
+                            disabled={isTerminal(appointment.status) || isUpdating}
                           >
-                            {isUpdating && updatingAction === "cancel" ? (
-                              "Cancelling..."
-                            ) : (
-                              <span className="inline-flex items-center gap-2">
-                                <XCircle className="h-4 w-4" />
-                                Cancel
-                              </span>
-                            )}
+                            <span className="inline-flex items-center gap-2">
+                              <XCircle className="h-4 w-4" />
+                              Cancel
+                            </span>
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => openDialog(appointment.id, "delete")}
+                            disabled={deleting}
+                          >
+                            <span className="inline-flex items-center gap-2">
+                              <Trash className="h-4 w-4" />
+                              Delete
+                            </span>
                           </Button>
                         </div>
                       </CardContent>
@@ -203,6 +238,33 @@ export default function AdminAppointmentsPage() {
           </div>
         </main>
       </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Action</DialogTitle>
+            <DialogDescription>{getDialogText()}</DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDialogOpen(false)}
+              disabled={deleting || updatingId !== null}
+            >
+              Cancel
+            </Button>
+
+            <Button
+              variant={dialogAction === "delete" ? "destructive" : "default"}
+              onClick={handleConfirm}
+              disabled={deleting || updatingId !== null}
+            >
+              Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

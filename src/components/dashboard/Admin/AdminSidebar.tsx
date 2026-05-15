@@ -76,7 +76,7 @@ const sections = [
       },
       {
         label: "All Reviews",
-        href: "#",
+        href: "/admin/reviews",
         icon: Star
       }
     ]

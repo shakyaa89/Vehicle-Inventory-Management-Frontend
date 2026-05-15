@@ -7,4 +7,6 @@ export interface AppointmentData {
 
 export interface Appointment extends AppointmentData {
   id: number;
+  customerName: string;
+  vehicleMake: string;
 }

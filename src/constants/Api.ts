@@ -7,6 +7,7 @@ import type { VendorData } from "@/types/vendor";
 import type { PurchaseInvoiceData } from "@/types/purchaseInvoice";
 import type { SalesInvoiceData } from "@/types/salesInvoice";
 import type { UserRegisterData } from "@/types/auth";
+import type { ReviewData, ReviewUpdateData } from "@/types/review";
 import axios from "axios";
 
 export const API_BASE_URL = "https://localhost:7124";
@@ -71,6 +72,8 @@ export const PartRequestApi = {
         Api.put(`/part-requests/${id}/complete`, {}, { headers: getAuthHeader() }),
     rejectPartRequestApi: (id: number) =>
         Api.put(`/part-requests/${id}/reject`, {}, { headers: getAuthHeader() }),
+    deletePartRequestApi: (id: number) =>
+        Api.delete(`/part-requests/${id}/delete`, { headers: getAuthHeader() }),
 };
 
 export const VendorApi = {
@@ -99,4 +102,19 @@ export const SalesInvoiceApi = {
         Api.get(`/sales-invoices/customer/${customerId}`, { headers: getAuthHeader() }),
     sendSalesInvoiceEmailApi: (id: number) =>
         Api.post(`/sales-invoices/${id}/send-email`, {}, { headers: getAuthHeader() }),
+};
+
+export const ReviewApi = {
+    createReviewApi: (reviewData: ReviewData) =>
+        Api.post("/reviews/create", reviewData, { headers: getAuthHeader() }),
+    getReviewsByCustomerApi: (customerId: number) =>
+        Api.get(`/reviews/customer/${customerId}`, { headers: getAuthHeader() }),
+    getAllReviewsApi: () =>
+        Api.get("/reviews", { headers: getAuthHeader() }),
+    getReviewByIdApi: (id: number) =>
+        Api.get(`/reviews/${id}`, { headers: getAuthHeader() }),
+    updateReviewApi: (id: number, reviewData: ReviewUpdateData) =>
+        Api.put(`/reviews/${id}`, reviewData, { headers: getAuthHeader() }),
+    deleteReviewApi: (id: number) =>
+        Api.delete(`/reviews/${id}`, { headers: getAuthHeader() }),
 };

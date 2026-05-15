@@ -1,19 +1,17 @@
+import { useEffect, useState } from "react"
+import { AxiosError } from "axios"
+import { toast } from "sonner"
 import {
   DollarSign,
   Boxes,
   Wrench,
   Users,
-  TrendingUp,
   AlertTriangle,
-  CheckCircle2,
-  ShoppingCart,
 } from "lucide-react"
 
 import {
   Bar,
   BarChart,
-  Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -29,109 +27,114 @@ import {
   CardDescription,
 } from "@/components/ui/card"
 
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { StatCard } from "@/components/dashboard/stat-card"
 import AdminNavbar from "@/components/dashboard/Admin/AdminNavbar"
 import AdminSidebar from "@/components/dashboard/Admin/AdminSidebar"
+import { AppointmentApi, AuthApi, PartApi, SalesInvoiceApi } from "@/constants/Api"
+import type { Appointment } from "@/types/appointment"
+import type { CustomerStats } from "@/types/auth"
+import type { Part } from "@/types/part"
+import type { SalesInvoiceData } from "@/types/salesInvoice"
 
-const revenueData = [
-  { name: "Mon", revenue: 4200, services: 1200 },
-  { name: "Tue", revenue: 5100, services: 1800 },
-  { name: "Wed", revenue: 4800, services: 1500 },
-  { name: "Thu", revenue: 6300, services: 2400 },
-  { name: "Fri", revenue: 7200, services: 2800 },
-  { name: "Sat", revenue: 8100, services: 3200 },
-  { name: "Sun", revenue: 5400, services: 1900 },
-]
+const lowStockThreshold = 10
 
-const categoryData = [
-  { name: "Brakes", value: 28 },
-  { name: "Engine", value: 22 },
-  { name: "Filters", value: 18 },
-  { name: "Electrical", value: 14 },
-  { name: "Tires", value: 11 },
-  { name: "Other", value: 7 },
-]
+const isTerminalStatus = (status: string) => {
+  const normalized = status.trim().toLowerCase()
+  return normalized === "completed" || normalized === "cancelled" || normalized === "canceled"
+}
 
-const lowStock = [
-  {
-    sku: "BP-2018",
-    name: "Brembo Brake Pads (Front)",
-    qty: 3,
-    threshold: 10,
-    vendor: "Brembo Direct",
-  },
-  {
-    sku: "OF-A24",
-    name: "Mann Oil Filter A24",
-    qty: 5,
-    threshold: 25,
-    vendor: "Mann Filter Co.",
-  },
-  {
-    sku: "SP-IRD",
-    name: "NGK Iridium Spark Plugs",
-    qty: 8,
-    threshold: 30,
-    vendor: "NGK Performance",
-  },
-  {
-    sku: "AF-K57",
-    name: "K&N Air Filter (SUV)",
-    qty: 2,
-    threshold: 12,
-    vendor: "K&N Engineering",
-  },
-  {
-    sku: "BAT-72",
-    name: "Optima YellowTop 72Ah",
-    qty: 1,
-    threshold: 6,
-    vendor: "Optima Batteries",
-  },
-]
+const formatCurrency = (value: number) => `Rs. ${value.toLocaleString("en-LK")}`
 
-const activity = [
-  {
-    who: "James K.",
-    action: "completed work order",
-    target: "#WO-1842",
-    time: "5m ago",
-    initials: "JK",
-  },
-  {
-    who: "Sofia R.",
-    action: "registered customer",
-    target: "Daniel Cho",
-    time: "12m ago",
-    initials: "SR",
-  },
-  {
-    who: "Marcus P.",
-    action: "received PO from Brembo",
-    target: "Rs. 2,140",
-    time: "1h ago",
-    initials: "MP",
-  },
-  {
-    who: "Elena T.",
-    action: "issued invoice",
-    target: "#INV-9921",
-    time: "2h ago",
-    initials: "ET",
-  },
-]
-
-const hasRevenueData = revenueData.some((point) => point.revenue > 0 || point.services > 0)
-const hasCategoryData = categoryData.some((item) => item.value > 0)
-const hasLowStockData = lowStock.length > 0
-const hasActivityData = activity.length > 0
+const truncateLabel = (value: string, maxLength: number) => {
+  if (value.length <= maxLength) return value
+  return `${value.slice(0, Math.max(0, maxLength - 3))}...`
+}
 
 export default function AdminDashboard() {
+  const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [parts, setParts] = useState<Part[]>([])
+  const [customers, setCustomers] = useState<CustomerStats[]>([])
+  const [salesInvoices, setSalesInvoices] = useState<SalesInvoiceData[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+
+  const fetchDashboardData = async () => {
+    setIsLoading(true)
+    try {
+      const [appointmentsResponse, partsResponse, customersResponse, salesInvoicesResponse] =
+        await Promise.all([
+          AppointmentApi.getAppointmentsApi(),
+          PartApi.getAllPartsApi(),
+          AuthApi.getCustomersApi(),
+          SalesInvoiceApi.getSalesInvoicesApi(),
+        ])
+
+      setAppointments(appointmentsResponse.data ?? [])
+      setParts(partsResponse.data ?? [])
+      setCustomers(customersResponse.data ?? [])
+      setSalesInvoices(salesInvoicesResponse.data ?? [])
+    } catch (error: unknown) {
+      if (error instanceof AxiosError) {
+        toast.error(error.response?.data?.message ?? "Failed to load dashboard data.")
+      } else {
+        toast.error("Failed to load dashboard data.")
+      }
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchDashboardData()
+  }, [])
+
+  const totalRevenue = salesInvoices.reduce(
+    (sum, invoice) => sum + (invoice.totalAmount ?? 0),
+    0
+  )
+
+  const partSalesTotals = new Map<number, number>()
+  for (const invoice of salesInvoices) {
+    for (const item of invoice.items ?? []) {
+      const currentTotal = partSalesTotals.get(item.partId) ?? 0
+      partSalesTotals.set(item.partId, currentTotal + (item.partQuantity ?? 0))
+    }
+  }
+
+  const partNameById = new Map(parts.map((part) => [part.id, part.name]))
+
+  const partSalesData = [...partSalesTotals.entries()]
+    .map(([partId, totalSold]) => ({
+      name: truncateLabel(partNameById.get(partId) ?? `Part ${partId}`, 14),
+      unitsSold: totalSold,
+    }))
+    .sort((a, b) => b.unitsSold - a.unitsSold)
+    .slice(0, 6)
+
+  const partsInStock = parts.reduce((sum, part) => sum + part.stockQuantity, 0)
+  const activeAppointments = appointments.filter((appointment) => !isTerminalStatus(appointment.status)).length
+  const categoryData = [...parts]
+    .sort((a, b) => b.stockQuantity - a.stockQuantity)
+    .slice(0, 6)
+    .map((part) => ({
+      name: truncateLabel(part.name, 12),
+      value: part.stockQuantity,
+    }))
+  const lowStock = parts
+    .filter((part) => part.stockQuantity <= lowStockThreshold)
+    .sort((a, b) => a.stockQuantity - b.stockQuantity)
+    .slice(0, 6)
+    .map((part) => ({
+      sku: part.sku,
+      name: part.name,
+      qty: part.stockQuantity,
+      threshold: lowStockThreshold,
+    }))
+
+  const hasPartSalesData = partSalesData.some((item) => item.unitsSold > 0)
+  const hasCategoryData = categoryData.some((item) => item.value > 0)
+  const hasLowStockData = lowStock.length > 0
   return (
     <div className="flex min-h-screen bg-muted/30">
       <AdminSidebar />
@@ -144,39 +147,31 @@ export default function AdminDashboard() {
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <StatCard
-                label="Revenue (week)"
-                value="Rs. 41,108"
-                delta="+12.4%"
-                trend="up"
+                label="Total revenue"
+                value={isLoading ? "-" : formatCurrency(totalRevenue)}
                 icon={DollarSign}
-                helper="vs. last week"
+                helper="all sales invoices"
               />
 
               <StatCard
                 label="Parts in stock"
-                value="12,486"
-                delta="-2.1%"
-                trend="down"
+                value={isLoading ? "-" : partsInStock.toLocaleString("en-LK")}
                 icon={Boxes}
-                helper="across 4 warehouses"
+                helper="total units"
               />
 
               <StatCard
                 label="Active work orders"
-                value="38"
-                delta="+6"
-                trend="up"
+                value={isLoading ? "-" : activeAppointments.toLocaleString("en-LK")}
                 icon={Wrench}
-                helper="11 awaiting parts"
+                helper="open appointments"
               />
 
               <StatCard
                 label="New customers"
-                value="142"
-                delta="+18%"
-                trend="up"
+                value={isLoading ? "-" : customers.length.toLocaleString("en-LK")}
                 icon={Users}
-                helper="this month"
+                helper="total registered"
               />
             </div>
 
@@ -185,56 +180,45 @@ export default function AdminDashboard() {
               <Card className="lg:col-span-2">
                 <CardHeader className="flex flex-row justify-between gap-4">
                   <div>
-                    <CardTitle>Revenue Overview</CardTitle>
+                    <CardTitle>Parts Sales</CardTitle>
                     <CardDescription>
-                      Daily revenue and service income
+                      Units sold by part
                     </CardDescription>
                   </div>
-
-                  <Tabs defaultValue="week">
-                    <TabsList>
-                      <TabsTrigger value="week">Week</TabsTrigger>
-                      <TabsTrigger value="month">Month</TabsTrigger>
-                      <TabsTrigger value="year">Year</TabsTrigger>
-                    </TabsList>
-                  </Tabs>
                 </CardHeader>
 
                 <CardContent>
-                  {hasRevenueData ? (
+                  {isLoading ? (
+                    <div className="flex h-72 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
+                      Loading parts sales data...
+                    </div>
+                  ) : hasPartSalesData ? (
                     <div className="h-72">
                       <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={revenueData}>
+                        <BarChart
+                          data={partSalesData}
+                        >
                           <CartesianGrid
                             strokeDasharray="3 3"
                             vertical={false}
                           />
                           <XAxis dataKey="name" />
                           <YAxis
-                            tickFormatter={(v:any)=>`Rs. ${v/1000}k`}
+                            allowDecimals={false}
                           />
                           <Tooltip />
 
-                          <Line
-                            type="monotone"
-                            dataKey="revenue"
-                            stroke="var(--chart-1)"
-                            dot={false}
+                          <Bar
+                            dataKey="unitsSold"
+                            fill="var(--chart-1)"
+                            radius={[4, 4, 0, 0]}
                           />
-
-                          <Line
-                            type="monotone"
-                            dataKey="services"
-                            stroke="var(--chart-2)"
-                            dot={false}
-                            strokeDasharray="4 4"
-                          />
-                        </LineChart>
+                        </BarChart>
                       </ResponsiveContainer>
                     </div>
                   ) : (
                     <div className="flex h-72 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
-                      No revenue data available yet.
+                      No parts sales data available yet.
                     </div>
                   )}
                 </CardContent>
@@ -243,14 +227,18 @@ export default function AdminDashboard() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Sales By Category</CardTitle>
+                  <CardTitle>Stock By Part</CardTitle>
                   <CardDescription>
-                    Last 30 days
+                    Current inventory levels
                   </CardDescription>
                 </CardHeader>
 
                 <CardContent>
-                  {hasCategoryData ? (
+                  {isLoading ? (
+                    <div className="flex h-72 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
+                      Loading stock data...
+                    </div>
+                  ) : hasCategoryData ? (
                     <div className="h-72">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart
@@ -263,6 +251,7 @@ export default function AdminDashboard() {
                             type="category"
                             dataKey="name"
                             width={70}
+                            tick={{ fontSize: 12 }}
                           />
                           <Tooltip/>
 
@@ -276,7 +265,7 @@ export default function AdminDashboard() {
                     </div>
                   ) : (
                     <div className="flex h-72 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
-                      No category sales data available yet.
+                      No stock data available yet.
                     </div>
                   )}
                 </CardContent>
@@ -285,7 +274,7 @@ export default function AdminDashboard() {
 
 
             <div className="grid gap-4 lg:grid-cols-3">
-              <Card className="lg:col-span-2">
+              <Card className="lg:col-span-3">
                 <CardHeader className="flex justify-between">
                   <div>
                     <CardTitle className="flex items-center gap-2">
@@ -297,15 +286,14 @@ export default function AdminDashboard() {
                       Reorder soon to avoid stockouts
                     </CardDescription>
                   </div>
-
-                  <Button variant="outline">
-                    <ShoppingCart className="mr-2 h-4 w-4"/>
-                    Auto-Reorder All
-                  </Button>
                 </CardHeader>
 
                 <CardContent className="space-y-3">
-                  {hasLowStockData ? lowStock.map(item=>{
+                  {isLoading ? (
+                    <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+                      Loading stock alerts...
+                    </div>
+                  ) : hasLowStockData ? lowStock.map(item=>{
                     const pct=Math.round(
                       (item.qty/item.threshold)*100
                     )
@@ -322,7 +310,7 @@ export default function AdminDashboard() {
                             </p>
 
                             <p className="text-xs text-muted-foreground">
-                              SKU {item.sku} • {item.vendor}
+                              SKU {item.sku}
                             </p>
                           </div>
 
@@ -348,104 +336,6 @@ export default function AdminDashboard() {
                       No low stock alerts right now.
                     </div>
                   )}
-                </CardContent>
-              </Card>
-
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>
-                    Recent Activity
-                  </CardTitle>
-                  <CardDescription>
-                    Across all locations
-                  </CardDescription>
-                </CardHeader>
-
-                <CardContent className="space-y-4">
-                  {hasActivityData ? activity.map((a,i)=>(
-                    <div key={i} className="flex gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback>
-                          {a.initials}
-                        </AvatarFallback>
-                      </Avatar>
-
-                      <div className="text-sm flex-1">
-                        <p>
-                          <span className="font-medium">
-                            {a.who}
-                          </span>{" "}
-                          <span className="text-muted-foreground">
-                            {a.action}
-                          </span>{" "}
-                          <span className="font-medium">
-                            {a.target}
-                          </span>
-                        </p>
-
-                        <p className="text-xs text-muted-foreground">
-                          {a.time}
-                        </p>
-                      </div>
-                    </div>
-                  )) : (
-                    <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-                      No recent activity to show.
-                    </div>
-                  )}
-
-                  <Button
-                    variant="ghost"
-                    className="w-full"
-                  >
-                    View All Activity
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-
-
-            <div className="grid gap-4 md:grid-cols-3">
-              <Card>
-                <CardContent className="flex gap-3 p-5">
-                  <CheckCircle2 className="h-5 w-5"/>
-                  <div>
-                    <p className="font-semibold text-sm">
-                      Inventory sync healthy
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Last sync 4 minutes ago.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="flex gap-3 p-5">
-                  <TrendingUp className="h-5 w-5"/>
-                  <div>
-                    <p className="font-semibold text-sm">
-                      Margins up 3.2%
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Vendor consolidation is paying off.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="flex gap-3 p-5">
-                  <Wrench className="h-5 w-5"/>
-                  <div>
-                    <p className="font-semibold text-sm">
-                      14 appointments tomorrow
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      3 require overnight parts.
-                    </p>
-                  </div>
                 </CardContent>
               </Card>
             </div>
