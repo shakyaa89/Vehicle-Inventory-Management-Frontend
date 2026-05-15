@@ -55,6 +55,11 @@ const sections = [
         icon: ClipboardList
       },
       {
+        label: "Reports",
+        href: "/admin/reports",
+        icon: FileText
+      },
+      {
         label: "Staff",
         href: "/admin/staff",
         icon: Users

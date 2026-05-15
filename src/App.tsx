@@ -25,6 +25,7 @@ import PurchaseInvoicesPage from './pages/Admin/PurchaseInvoices'
 import AdminAppointmentsPage from './pages/Admin/Appointments'
 import AdminSalesOrdersPage from './pages/Admin/SalesOrders'
 import AdminReviewsPage from './pages/Admin/Reviews'
+import AdminReportsPage from './pages/Admin/Reports'
 import StaffDashboard from './pages/Staff/StaffDashboard'
 import StaffProtectedRoute from './routes/StaffProtectedRoute'
 import StaffCustomerRegistration from './pages/Staff/StaffCustomerRegistration'
@@ -206,6 +207,13 @@ function App() {
           element={
             <AdminProtectedRoute>
               <AdminReviewsPage />
+            </AdminProtectedRoute>
+          } />
+        <Route
+          path="/admin/reports"
+          element={
+            <AdminProtectedRoute>
+              <AdminReportsPage />
             </AdminProtectedRoute>
           } />
         <Route

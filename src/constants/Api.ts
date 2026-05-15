@@ -118,3 +118,12 @@ export const ReviewApi = {
     deleteReviewApi: (id: number) =>
         Api.delete(`/reviews/${id}`, { headers: getAuthHeader() }),
 };
+
+export const ReportsApi = {
+    generateFinancialReportPdfApi: (from: string, to: string) =>
+        Api.get("/reports/financial/pdf", {
+            params: { from, to },
+            headers: getAuthHeader(),
+            responseType: "blob",
+        }),
+};
